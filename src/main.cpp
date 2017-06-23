@@ -4,6 +4,7 @@
 #include "PID.h"
 #include <math.h>
 
+
 // for convenience
 using json = nlohmann::json;
 
@@ -11,6 +12,10 @@ using json = nlohmann::json;
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+//PID Values
+  std::vector <double> params = {0.1,0,2.08};//Kp,Ki,Kd - 0,0.0002,3.0
+//0.308,0,2.08 - > Noisy but okay
+  //std::vector <double> dparams = {0.01,0.05,0.1}; //Starting Prob Parameters -used for Twiddle
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -33,7 +38,11 @@ int main()
   uWS::Hub h;
 
   PID pid;
-  // TODO: Initialize the pid variable.
+//Initialize the PID variable  
+  pid.Init(params[0], params[1], params[2]);
+  //std::cout << "PID Vals Top:"<<pid.Kp<<" ,"<<pid.Ki<<","<<pid.Kd<<std::endl;
+  //std::cout << "PID params Top:"<<params[0]<<" ,"<<params[1]<<","<<params[2]<<std::endl;
+
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -57,7 +66,30 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
+		   
+		  pid.UpdateError(cte);//Update the PID errors first
           
+		  /* Used in Twiddle
+      double err = pid.TotalError();
+		  pid.Twiddle(params,dparams);
+      */
+		  
+      double p_error = pid.p_error;		  
+		  double i_error = pid.i_error;	
+		  double d_error = pid.d_error;
+		  
+		  double Kp = pid.Kp;
+		  double Ki = pid.Ki;
+		  double Kd = pid.Kd;
+          //std::cout << "PID params:"<<params[0]<<" ,"<<params[1]<<","<<params[2]<<std::endl;
+          //std::cout << "PID Vals:"<<Kp<<" ,"<<Ki<<","<<Kd<<std::endl;
+          
+         // std::cout <<"Errors:"<< p_error <<" , "<< i_error<<" , "<< d_error << std::endl;
+		  steer_value = (-Kp * p_error) - (Kd * d_error) - (Ki * i_error);
+      ///std::cout << "Raw Steer" << steer_value <<std::endl;
+          //Steering value is between [1,-1]
+		  steer_value = std::max(std::min(steer_value,1.0),-1.0);
+
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
@@ -67,6 +99,7 @@ int main()
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+		  
         }
       } else {
         // Manual driving

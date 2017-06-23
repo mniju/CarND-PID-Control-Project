@@ -1,6 +1,12 @@
 #ifndef PID_H
 #define PID_H
 
+#include <string>
+#include <vector>
+
+using std::string;
+using std::vector;
+
 class PID {
 public:
   /*
@@ -16,6 +22,16 @@ public:
   double Kp;
   double Ki;
   double Kd;
+  /*
+  *Other Varaibles
+  */
+  int n_steps;
+  int cur_step;
+  double best_error;
+  double err;
+  int p_idx; // Index of tuning parameter
+  bool twiddle; // Should Twiddle run and train
+  string next_state; // Next Step Name -used in Twiddle
 
   /*
   * Constructor
@@ -41,6 +57,14 @@ public:
   * Calculate the total PID error.
   */
   double TotalError();
+  
+  /*
+  *Find Kp,Ki and Kd using Twiddle
+  */
+  void Twiddle(vector <double> &params,vector <double> &dparams);
+  
+ 
 };
+
 
 #endif /* PID_H */
